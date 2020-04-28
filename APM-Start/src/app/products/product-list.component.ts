@@ -2,9 +2,10 @@ import { Component, OnInit, OnChanges, OnDestroy, SimpleChanges, SimpleChange } 
 import { IProduct } from './product';
 import { JsonPipe } from '@angular/common';
 import { ProductService } from './product.service';
+import { nameof } from 'src/common/nameof';
+import { Subscription } from 'rxjs';
 
 @Component({
-    selector: `pm-products`,
     templateUrl: `./product-list.component.html`,
     styleUrls: ['./product-list.component.css']
 })
@@ -13,6 +14,10 @@ export class ProductListComponent implements OnInit, OnChanges, OnDestroy {
     imageWidth: number = 50;
     imageMargin: number = 2;
     showImage: boolean = false;
+    errorMessage: string;
+
+    subscriptions: {[propertyName: string]: Subscription} = {};
+
     private _listFilter: string;
     get listFilter(): string {
       return this._listFilter;
@@ -32,8 +37,16 @@ export class ProductListComponent implements OnInit, OnChanges, OnDestroy {
         this.showImage = !this.showImage;
       }
       ngOnInit(): void {
-        this.products = this.productService.getProducts();
-        this.filteredProducts = this.products;
+        var productsSubcriptionName = nameof<ProductListComponent>('products');
+        this.subscriptions[productsSubcriptionName] = this.productService
+          .getProducts().subscribe({
+            next: products => {
+              this.products = products;
+              this.filteredProducts = this.products;
+            },
+            error: err => this.errorMessage = err
+          });
+              
         this.listFilter = '';
       }
       ngOnChanges(changes: SimpleChanges): void {
